@@ -1,0 +1,38 @@
+[
+  {
+    "id": "c477b6cb-77f3-44cf-9acf-d40f5f5894e1",
+    "name": "test",
+    "timeline": "1",
+    "description": "3",
+    "imageUrl": "2",
+    "videos": [
+      {
+        "url": "https://www.tiktok.com/@rzlartz.draw/video/7418502257441819910",
+        "cost": 700000,
+        "stats": {
+          "diggCount": 43300,
+          "shareCount": 1265,
+          "commentCount": 1052,
+          "playCount": 796900,
+          "collectCount": 7717
+        },
+        "id": "7418502257441819910",
+        "updatedAt": "2025-12-10T06:55:08.179Z"
+      },
+      {
+        "url": "https://www.tiktok.com/@satisfycutt/video/7579890251569712415",
+        "cost": 7500000,
+        "stats": {
+          "diggCount": 426200,
+          "shareCount": 126900,
+          "commentCount": 1947,
+          "playCount": 39300000,
+          "collectCount": 18617
+        },
+        "id": "7579890251569712415",
+        "updatedAt": "2025-12-10T07:58:08.422Z"
+      }
+    ],
+    "createdAt": "2025-12-10T06:54:50.688Z"
+  }
+]
