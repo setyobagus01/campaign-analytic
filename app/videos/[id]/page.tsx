@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 
 export default function VideoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const [video, setVideo] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -19,7 +20,7 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
   const itemsPerPage = 50;
 
   // Fetch comments via our proxy
-  async function fetchAllComments() {
+  async function fetchAllComments(tiktokId: string) {
       setLoading(true);
       setError('');
       let allComments: any[] = [];
@@ -29,7 +30,7 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
 
       try {
           while (hasMore) {
-              const res = await fetch(`/api/tiktok/comments?aweme_id=${id}&cursor=${cursor}&count=50&aid=1988&app_language=en`);
+              const res = await fetch(`/api/tiktok/comments?aweme_id=${tiktokId}&cursor=${cursor}&count=50&aid=1988&app_language=en`);
               
               if (!res.ok) throw new Error('API Request Failed');
               
@@ -69,8 +70,33 @@ export default function VideoDetailPage({ params }: { params: Promise<{ id: stri
       }
   }
 
+  // Fetch Video Details first
   useEffect(() => {
-      if(id) fetchAllComments();
+      async function splitFetch() {
+          setLoading(true);
+          try {
+             // 1. Get DB Info (for tiktokId)
+             const vRes = await fetch(`/api/videos/${id}`);
+             if(!vRes.ok) throw new Error('Video not found');
+             const vData = await vRes.json();
+             setVideo(vData);
+
+             // 2. Fetch Comments using tiktokId
+             if(vData.tiktokId) {
+                await fetchAllComments(vData.tiktokId);
+             } else {
+                 setError('No TikTok ID found for this video');
+                 setLoading(false);
+             }
+
+          } catch (e) {
+              console.error(e);
+              setError('Failed to load video details');
+              setLoading(false);
+          }
+      }
+
+      if(id) splitFetch();
   }, [id]);
 
   // Export to CSV

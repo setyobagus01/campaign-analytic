@@ -61,8 +61,11 @@ export async function POST(request: Request) {
 
         const stats = data.stats || {};
 
+        const tiktokId = videoId || data.id;
+
         return NextResponse.json({
-            id: videoId || data.id,
+            id: tiktokId, // Backward compatibility if needed, but safer to use tiktokId field
+            tiktokId: tiktokId,
             stats: {
                 diggCount: parseInt(String(stats.diggCount || 0)),
                 shareCount: parseInt(String(stats.shareCount || 0)),

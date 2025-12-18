@@ -19,9 +19,10 @@ model Campaign {
 }
 
 model Video {
-  id   String @id // TikTok Video ID
-  url  String
-  cost Float  @default(0)
+  id       String @id @default(uuid())
+  tiktokId String
+  url      String
+  cost     Float  @default(0)
 
   // Stats
   diggCount    Int @default(0)
@@ -35,6 +36,8 @@ model Video {
 
   comments  Comment[]
   updatedAt DateTime  @updatedAt
+
+  @@unique([tiktokId, campaignId])
 }
 
 model Comment {
