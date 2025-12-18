@@ -12,6 +12,7 @@ import { Video, Campaign } from '@prisma/client';
 
 interface VideoFormData {
   id?: string;
+  tiktokId?: string;
   url: string;
   cost: number;
   diggCount?: number;
@@ -61,25 +62,35 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
       const newVideos = [...videos];
       // Mark as loading locally if needed, for now just fire request
       try {
+          // Extract ID from URL first (Source of Truth)
+          const urlMatch = video.url.match(/video\/(\d+)/);
+          const tiktokIdFromUrl = urlMatch ? urlMatch[1] : undefined;
+
           const res = await fetch('/api/tiktok/video', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ url: video.url })
           });
+          
           if (res.ok) {
               const data = await res.json();
               newVideos[index] = {
                   ...newVideos[index],
-                  id: data.id,
+                  // If it's a new video being added, it might not have an internal DB ID yet (id would be undefined or scraped ID).
+                  // But we should strictly separate them. 
+                  // For the form, if it's existing, it has 'id' (UUID). If new, 'id' is undefined.
+                  // 'tiktokId' should be what we extracted or what the API confirmed.
+                  tiktokId: tiktokIdFromUrl || data.tiktokId || data.id, 
                   diggCount: data.stats.diggCount,
                   shareCount: data.stats.shareCount,
                   commentCount: data.stats.commentCount,
                   playCount: data.stats.playCount,
                   collectCount: data.stats.collectCount,
               };
-              // Optionally set title/cover if we want to store it
               setVideos(newVideos);
           } else {
+              // Even if fetch fails, if we have URL, we might want to keep the ID?
+              // For now just log error.
               console.error('Failed to fetch stats');
           }
       } catch (e) {
@@ -100,6 +111,10 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
         const processedVideos = await Promise.all(videos.map(async (v) => {
             if (!v.playCount && v.url) {
                 try {
+                    // Extract ID from URL first (Source of Truth)
+                    const urlMatch = v.url.match(/video\/(\d+)/);
+                    const tiktokIdFromUrl = urlMatch ? urlMatch[1] : undefined;
+
                     const res = await fetch('/api/tiktok/video', {
                         method: 'POST',
                         body: JSON.stringify({ url: v.url })
@@ -109,6 +124,7 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
                         return { 
                             ...v, 
                             id: data.id,
+                            tiktokId: tiktokIdFromUrl || data.tiktokId || data.id,
                             diggCount: data.stats.diggCount,
                             shareCount: data.stats.shareCount,
                             commentCount: data.stats.commentCount,
@@ -118,6 +134,13 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
                     }
                 } catch (e) {
                      // ignore
+                }
+            }
+            // Even if we didn't re-fetch, ensuring tiktokId is populated if possible from URL
+             if (!v.tiktokId && v.url) {
+                const urlMatch = v.url.match(/video\/(\d+)/);
+                if (urlMatch) {
+                    return { ...v, tiktokId: urlMatch[1] };
                 }
             }
             return v;

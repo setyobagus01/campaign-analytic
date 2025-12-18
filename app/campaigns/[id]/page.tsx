@@ -66,6 +66,10 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
           if (!res.ok) throw new Error('Failed to fetch video stats');
           const data = await res.json();
 
+          // Extract ID from URL (Source of Truth)
+          const urlMatch = newVideoUrl.match(/video\/(\d+)/);
+          const tiktokIdFromUrl = urlMatch ? urlMatch[1] : undefined;
+
           const newVideo: Video = {
               url: newVideoUrl,
               cost: Number(newVideoCost) || 0,
@@ -75,7 +79,8 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
               playCount: data.stats.playCount || 0,
               collectCount: data.stats.collectCount || 0,
               campaignId: id,
-              id: data.id, 
+              id: '', // Will be assigned by DB
+              tiktokId: tiktokIdFromUrl || data.tiktokId || data.id, // Prefer URL extraction
               updatedAt: new Date()
           };
 
@@ -133,6 +138,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
               playCount: data.stats.playCount || 0,
               collectCount: data.stats.collectCount || 0,
               id: data.id,
+              tiktokId: data.tiktokId || data.id,
               updatedAt: new Date()
           };
 
@@ -197,6 +203,29 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
       }
   };
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshAll = async () => {
+      if (!campaign) return;
+      setIsRefreshing(true);
+      try {
+          const res = await fetch(`/api/campaigns/${id}/refresh`, { method: 'POST' });
+          if (!res.ok) throw new Error('Refresh failed');
+          
+          // Re-fetch campaign data to get updated stats
+          const reloadRes = await fetch(`/api/campaigns/${id}`);
+          if (reloadRes.ok) {
+              const updated = await reloadRes.json();
+              setCampaign(updated);
+          }
+      } catch (e) {
+          console.error(e);
+          alert('Failed to refresh stats');
+      } finally {
+          setIsRefreshing(false);
+      }
+  };
+
   // ... (keeping existing render logic)
 
   if (loading || !campaign) return <div>Loading...</div>;
@@ -218,6 +247,10 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
             </div>
         </div>
         <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleRefreshAll} disabled={isRefreshing}>
+                <RefreshCcw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh All Stats'}
+            </Button>
             <Button variant="outline" size="icon" onClick={openEditCampaignModal}>
                 <Pencil className="w-4 h-4" />
             </Button>
