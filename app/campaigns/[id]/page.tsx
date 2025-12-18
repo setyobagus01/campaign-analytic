@@ -166,7 +166,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   const openEditCampaignModal = () => {
       if(!campaign) return;
       setEditCamName(campaign.name);
-      setEditCamTimeline(campaign.timeline);
+      setEditCamTimeline(campaign.timeline || '');
       setEditCamDesc(campaign.description || '');
       setIsEditingCampaign(true);
   };
