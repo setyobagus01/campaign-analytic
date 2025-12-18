@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { calculateMetrics, formatCurrency, formatNumber, Metrics } from '@/lib/analytics';
-import { Campaign } from '@/lib/db';
+import { Campaign } from '@prisma/client';
 import { Activity, CreditCard, Eye, Heart, MessageCircle, MoreHorizontal, Share2, Bookmark } from 'lucide-react';
 
 export default function Dashboard() {

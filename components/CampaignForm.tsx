@@ -8,10 +8,21 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Video, Campaign } from '@/lib/db';
+import { Video, Campaign } from '@prisma/client';
+
+interface VideoFormData {
+  id?: string;
+  url: string;
+  cost: number;
+  diggCount?: number;
+  shareCount?: number;
+  commentCount?: number;
+  playCount?: number;
+  collectCount?: number;
+}
 
 interface CampaignFormProps {
-  initialData?: Campaign;
+  initialData?: Campaign & { videos?: Video[] };
 }
 
 export function CampaignForm({ initialData }: CampaignFormProps) {
@@ -23,11 +34,12 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
     description: initialData?.description || '',
     imageUrl: initialData?.imageUrl || '',
   });
+  const [error, setError] = useState('');
 
-  const [videos, setVideos] = useState<Video[]>(initialData?.videos || [{ url: '', cost: 0 }]);
+  const [videos, setVideos] = useState<VideoFormData[]>((initialData?.videos as any) || [{ url: '', cost: 0, diggCount: 0, shareCount: 0, commentCount: 0, playCount: 0, collectCount: 0 }]);
 
   const addVideo = () => {
-    setVideos([...videos, { url: '', cost: 0 }]);
+    setVideos([...videos, { url: '', cost: 0, diggCount: 0, shareCount: 0, commentCount: 0, playCount: 0, collectCount: 0 }]);
   };
 
   const removeVideo = (index: number) => {
@@ -36,7 +48,7 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
     setVideos(newVideos);
   };
 
-  const updateVideo = (index: number, field: keyof Video, value: any) => {
+  const updateVideo = (index: number, field: keyof VideoFormData, value: any) => {
     const newVideos = [...videos];
     newVideos[index] = { ...newVideos[index], [field]: value };
     setVideos(newVideos);
@@ -56,8 +68,15 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
           });
           if (res.ok) {
               const data = await res.json();
-              newVideos[index].stats = data.stats;
-              newVideos[index].id = data.id;
+              newVideos[index] = {
+                  ...newVideos[index],
+                  id: data.id,
+                  diggCount: data.stats.diggCount,
+                  shareCount: data.stats.shareCount,
+                  commentCount: data.stats.commentCount,
+                  playCount: data.stats.playCount,
+                  collectCount: data.stats.collectCount,
+              };
               // Optionally set title/cover if we want to store it
               setVideos(newVideos);
           } else {
@@ -71,6 +90,7 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     try {
         // Ensure all stats are fetched if missing? 
@@ -78,7 +98,7 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
         // Ideally we should process all videos server side or client side before saving.
         // Let's iterate and try to fetch stats for new videos that don't have them.
         const processedVideos = await Promise.all(videos.map(async (v) => {
-            if (!v.stats && v.url) {
+            if (!v.playCount && v.url) {
                 try {
                     const res = await fetch('/api/tiktok/video', {
                         method: 'POST',
@@ -86,7 +106,15 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
                     });
                     if (res.ok) {
                         const data = await res.json();
-                        return { ...v, stats: data.stats, id: data.id };
+                        return { 
+                            ...v, 
+                            id: data.id,
+                            diggCount: data.stats.diggCount,
+                            shareCount: data.stats.shareCount,
+                            commentCount: data.stats.commentCount,
+                            playCount: data.stats.playCount,
+                            collectCount: data.stats.collectCount,
+                        };
                     }
                 } catch (e) {
                      // ignore
@@ -113,11 +141,14 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
             router.push('/campaigns');
             router.refresh();
         } else {
+            const data = await res.json();
+            setError(data.error || 'Failed to save campaign');
             console.error('Failed to save');
         }
 
     } catch (e) {
         console.error(e);
+        setError('An unexpected error occurred');
     } finally {
         setLoading(false);
     }
@@ -182,7 +213,7 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
                         <Trash className="w-4 h-4" />
                     </Button>
                     
-                    {video.stats ? (
+                    {video.playCount ? (
                         <div className="mt-8">
                              <CheckCircle2 className="w-5 h-5 text-green-500" />
                         </div>
@@ -195,6 +226,13 @@ export function CampaignForm({ initialData }: CampaignFormProps) {
             </Card>
         ))}
       </div>
+
+      {error && (
+          <div className="flex items-center gap-2 text-destructive bg-destructive/10 p-3 rounded-md">
+              <AlertCircle className="w-5 h-5" />
+              <p className="text-sm font-medium">{error}</p>
+          </div>
+      )}
 
       <div className="flex justify-end gap-4">
         <Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button>

@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Campaign {
+  id          String   @id @default(uuid())
+  name        String
+  timeline    String?
+  description String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  videos Video[]
+}
+
+model Video {
+  id   String @id // TikTok Video ID
+  url  String
+  cost Float  @default(0)
+
+  // Stats
+  diggCount    Int @default(0)
+  shareCount   Int @default(0)
+  commentCount Int @default(0)
+  playCount    Int @default(0)
+  collectCount Int @default(0)
+
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  comments  Comment[]
+  updatedAt DateTime  @updatedAt
+}
+
+model Comment {
+  id        String   @id // TikTok Comment ID
+  text      String
+  username  String
+  nickname  String?
+  avatarUrl String?
+  likeCount Int      @default(0)
+  postedAt  DateTime // Create time from TikTok
+
+  videoId String
+  video   Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+}

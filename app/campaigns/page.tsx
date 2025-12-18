@@ -4,13 +4,15 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Campaign } from '@/lib/db';
 import { calculateMetrics, formatCurrency, formatNumber } from '@/lib/analytics';
 import { Plus, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Campaign, Video } from '@prisma/client';
+
+type CampaignWithVideos = Campaign & { videos: Video[] };
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignWithVideos[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

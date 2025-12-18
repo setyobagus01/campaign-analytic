@@ -6,14 +6,16 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Campaign, Video } from '@/lib/db';
+import { Campaign, Video } from '@prisma/client';
+
+type CampaignWithVideos = Campaign & { videos: Video[] };
 import { calculateMetrics, formatCurrency, formatNumber } from '@/lib/analytics';
 import { ArrowLeft, Trash, Edit, MessageSquare, ExternalLink, Activity, CreditCard, Eye, Heart, Share2, Bookmark, RefreshCcw, X, Save, Pencil } from 'lucide-react';
 
 export default function CampaignDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [campaign, setCampaign] = useState<CampaignWithVideos | null>(null);
   const [loading, setLoading] = useState(true);
 
   /* Restore useEffect */
@@ -67,9 +69,14 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
           const newVideo: Video = {
               url: newVideoUrl,
               cost: Number(newVideoCost) || 0,
-              stats: data.stats,
+              diggCount: data.stats.diggCount || 0,
+              shareCount: data.stats.shareCount || 0,
+              commentCount: data.stats.commentCount || 0,
+              playCount: data.stats.playCount || 0,
+              collectCount: data.stats.collectCount || 0,
+              campaignId: id,
               id: data.id, 
-              updatedAt: new Date().toISOString()
+              updatedAt: new Date()
           };
 
           const updatedVideos = [...(campaign?.videos || []), newVideo];
@@ -120,9 +127,13 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
               ...updatedVideos[editingVideoIndex],
               url: editUrl,
               cost: Number(editCost) || 0,
-              stats: data.stats,
+              diggCount: data.stats.diggCount || 0,
+              shareCount: data.stats.shareCount || 0,
+              commentCount: data.stats.commentCount || 0,
+              playCount: data.stats.playCount || 0,
+              collectCount: data.stats.collectCount || 0,
               id: data.id,
-              updatedAt: new Date().toISOString()
+              updatedAt: new Date()
           };
 
           await updateCampaignVideos(updatedVideos);
@@ -305,11 +316,10 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
                     </tr>
                 </thead>
                 <tbody className="[&_tr:last-child]:border-0">
-                    {campaign.videos.map((video, i) => {
+                     {campaign.videos.map((video, i) => {
                          // Calculate video level metrics
-                         const vStats = video.stats || { diggCount: 0, commentCount: 0, shareCount: 0, collectCount: 0, playCount: 0 };
-                         const engagement = vStats.diggCount + vStats.commentCount + vStats.shareCount + vStats.collectCount;
-                         const views = vStats.playCount;
+                          const engagement = (video.diggCount || 0) + (video.commentCount || 0) + (video.shareCount || 0) + (video.collectCount || 0);
+                          const views = video.playCount || 0;
                          const cost = video.cost;
                          
                          const cpe = engagement > 0 ? cost / engagement : 0;

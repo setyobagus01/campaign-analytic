@@ -1,4 +1,4 @@
-import { Campaign, Video } from './db';
+import { Campaign, Video } from '@prisma/client';
 
 export interface Metrics {
     views: number;
@@ -25,15 +25,18 @@ export function calculateMetrics(campaigns: Campaign[]): Metrics {
     let videoCount = 0;
 
     campaigns.forEach(campaign => {
-        campaign.videos.forEach(video => {
+        const videos = (campaign as any).videos || [];
+        videos.forEach((video: any) => {
             videoCount++;
             cost += Number(video.cost) || 0;
-            if (video.stats) {
-                views += Number(video.stats.playCount) || 0;
-                likes += Number(video.stats.diggCount) || 0;
-                comments += Number(video.stats.commentCount) || 0;
-                shares += Number(video.stats.shareCount) || 0;
-                saved += Number(video.stats.collectCount) || 0;
+            // Mapping stats from direct properties if inconsistent with Prisma types or runtime mismatch
+            // Assuming video object structure might differ slightly at runtime
+            if (video) {
+                views += Number(video.playCount) || 0;
+                likes += Number(video.diggCount) || 0;
+                comments += Number(video.commentCount) || 0;
+                shares += Number(video.shareCount) || 0;
+                saved += Number(video.collectCount) || 0;
             }
         });
     });

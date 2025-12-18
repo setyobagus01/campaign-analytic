@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getCampaigns, saveCampaign, Campaign } from '@/lib/db';
+
 import { v4 as uuidv4 } from 'uuid';
+import prisma from '@/lib/prisma';
+import { Campaign } from '@prisma/client';
 
 export async function GET() {
-    const campaigns = await getCampaigns();
+    const campaigns = await prisma.campaign.findMany({
+        include: {
+            videos: true
+        }
+    });
     return NextResponse.json(campaigns);
 }
 
@@ -16,18 +22,39 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Name is required' }, { status: 400 });
         }
 
-        const newCampaign: Campaign = {
+        const videosData = (body.videos || []).map((video: any) => ({
+            id: uuidv4(),
+            url: video.url,
+            cost: video.cost || 0,
+            diggCount: video.diggCount || 0,
+            shareCount: video.shareCount || 0,
+            commentCount: video.commentCount || 0,
+            playCount: video.playCount || 0,
+            collectCount: video.collectCount || 0,
+        }));
+
+        const newCampaign = {
             id: uuidv4(),
             name: body.name,
             timeline: body.timeline || '',
             description: body.description || '',
             imageUrl: body.imageUrl || '', // Optional
-            videos: body.videos || [],
-            createdAt: new Date().toISOString(),
+            createdAt: new Date(),
         };
 
-        await saveCampaign(newCampaign);
-        return NextResponse.json(newCampaign, { status: 201 });
+        const createdCampaign = await prisma.campaign.create({
+            data: {
+                ...newCampaign,
+                videos: {
+                    create: videosData,
+                },
+            },
+            include: {
+                videos: true,
+            },
+        });
+
+        return NextResponse.json(createdCampaign, { status: 201 });
 
     } catch (error) {
         console.error('Create Campaign Error:', error);
